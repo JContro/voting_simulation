@@ -1,9 +1,15 @@
+#!/usr/bin/env python3
 """Full pipeline demo: world -> phase-1 recovery -> phase-2 adaptive sampling.
 
+Usage:
+    python run_demo.py [--seed N] [--population blob|polarized]
+
 Runs in ~2-4 minutes on a laptop. Figures land in ./figures/.
-For paper-grade numbers, sweep cfg.seed over 20+ values and aggregate.
+For paper-grade numbers, use run_sweep.py (sweeps over 20+ seeds).
 """
 import os
+import sys
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -15,21 +21,32 @@ from votesim.adaptive import evaluate_policies
 
 os.makedirs("figures", exist_ok=True)
 
+# --- CLI ---
+parser = argparse.ArgumentParser(description="Spatial voting simulation demo")
+parser.add_argument("--seed", type=int, default=1, help="random seed")
+parser.add_argument("--population", type=str, default="blob",
+                    choices=["blob", "polarized", "clustered"],
+                    help="voter population geometry")
+args = parser.parse_args()
+print(f"run_demo.py  seed={args.seed}  population={args.population}")
+
 # ============================ build the world ================================
 cfg = SimConfig(alpha=2, n_topics=60, n_voters=2000, tau=0.4,
-                kernel="logistic", eps=0.03, seed=1)
+                kernel="logistic", eps=0.03, seed=args.seed,
+                population=args.population)
 world = make_world(cfg)
 P_true = vote_probs(world["T"], world["V"], world["sigma"],
                     world["b"], world["c"], cfg.eps, cfg.kernel)
 Y = sample_votes(P_true, world["rng"])
+approval = Y.mean()
 print(f"world: alpha={cfg.alpha}, X={cfg.n_topics}, N={cfg.n_voters}, "
-      f"approval rate = {Y.mean():.3f}")
+      f"approval rate = {approval:.3f}, population={cfg.population}")
 
 # ====================== PHASE 1: topic recovery ==============================
 print("\n--- Phase 1: topic recovery ---")
 T_pca = recover_pca(Y, cfg.alpha)
 T_mds = recover_mds(Y, cfg.alpha)
-fit = mle_fit(Y, cfg.alpha, eps=cfg.eps, init_T=T_mds, n_iter=1500,
+fit = mle_fit(Y, cfg.alpha, eps=cfg.eps, init_T=T_mds, n_iter=3000,
               seed=cfg.seed, verbose=True)
 
 oracle_ll = mean_loglik(Y, P_true)
@@ -70,7 +87,8 @@ fig.savefig("figures/fig2_dim_selection.png", dpi=150, bbox_inches="tight")
 # ================= PHASE 2: adaptive voter localization ======================
 
 
-def identity(x): return np.atleast_2d(x)
+def identity(x):
+    return np.atleast_2d(x)
 
 
 to_true = procrustes_transform(fit["T"], world["T"])
@@ -98,3 +116,15 @@ ax.set_title("Adaptive voter localization")
 ax.legend(fontsize=8)
 fig.savefig("figures/fig3_adaptive_policies.png", dpi=150, bbox_inches="tight")
 print("\nFigures saved to ./figures/")
+
+# ====================== polarized population plot ============================
+if args.population in ("polarized", "clustered"):
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.scatter(*world["V"][::10, :2].T, c=world["sigma"][::10],
+               s=10, cmap="viridis", alpha=0.6)
+    ax.scatter(*world["T"][:, :2].T, c="k", s=40, marker="s",
+               label="topics")
+    ax.set_title(f"Voters by tolerance ({cfg.population} population)")
+    cbar = fig.colorbar(ax.collections[0], ax=ax, label="tolerance $\\sigma$")
+    fig.savefig("figures/fig4_population.png", dpi=150, bbox_inches="tight")
+    print("Figure: fig4_population.png saved")

@@ -27,4 +27,10 @@ class SimConfig:
     sd_bias: float = 0.5
     sd_valence: float = 0.5        # sd of topic valence c_j (logistic only)
 
+    # --- response mode ---
+    response_mode: str = "binary"      # "binary" | "ordinal"
+    n_categories: int = 5              # used if response_mode == "ordinal"
+    # Thresholds for ordinal model (K-1 cutpoints). If None, learned.
+    thresholds: tuple = None
+
     seed: int = 0

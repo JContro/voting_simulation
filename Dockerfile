@@ -15,11 +15,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the package and entry point
 COPY votesim/    votesim/
-COPY run_demo.py .
+COPY run_demo.py run_sweep.py run_approval_sweep.py run_ordinal_demo.py .
 
 # Output directory — mounted as a volume in docker-compose
 RUN mkdir -p figures && chown -R appuser:appuser /home/appuser/app
 
 USER appuser
 
-ENTRYPOINT ["python", "run_demo.py"]
+ENTRYPOINT ["python"]
