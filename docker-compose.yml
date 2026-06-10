@@ -2,6 +2,8 @@ services:
   voting-sim:
     build: .
     container_name: voting-sim
+    env_file:
+      - .env
     volumes:
       # Mount figures out so you can inspect plots on the host
       - ./figures:/home/appuser/app/figures
