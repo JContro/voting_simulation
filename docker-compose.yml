@@ -1,0 +1,15 @@
+services:
+  voting-sim:
+    build: .
+    container_name: voting-sim
+    volumes:
+      # Mount figures out so you can inspect plots on the host
+      - ./figures:/home/appuser/app/figures
+    # Default: run the full demo. Override with `docker compose run ...` args.
+    command: []
+    # Optional: pin CPU/memory for reproducible benchmarks
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "4"
+    #       memory: 4G
